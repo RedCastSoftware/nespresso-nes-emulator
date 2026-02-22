@@ -562,7 +562,7 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
         /* ASL - Arithmetic Shift Left */
         case 0x0A: {
             uint8_t carry;
-            cpu->reg.a = do_asl_cpu(cpu->reg.a, 0, &carry);
+            cpu->reg.a = do_asl_cpu(cpu->reg.a, &carry);
             nes_cpu_set_flag(cpu, FLAG_CARRY, carry);
             nes_cpu_update_zn(cpu, cpu->reg.a);
             break;
@@ -571,7 +571,7 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
             uint16_t addr = get_effective_address(cpu, info->mode);
             uint8_t val = g_bus->read(g_bus->context, addr);
             uint8_t carry;
-            val = do_asl_cpu(val, 0, &carry);
+            val = do_asl_cpu(val, &carry);
             g_bus->write(g_bus->context, addr, val);
             nes_cpu_set_flag(cpu, FLAG_CARRY, carry);
             nes_cpu_update_zn(cpu, val);
