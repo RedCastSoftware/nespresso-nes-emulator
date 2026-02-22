@@ -483,6 +483,7 @@ void nes_cpu_init(nes_cpu_t* cpu, cpu_bus_t* bus) {
 }
 
 void nes_cpu_reset(nes_cpu_t* cpu) {
+    printf("  nes_cpu_reset called, cpu=%p, g_bus=%p\n", (void*)cpu, (void*)g_bus);
     cpu->reg.p = FLAG_UNUSED | FLAG_INTERRUPT;
     cpu->reg.sp = 0xFD;
     cpu->stall_cycles = 0;
@@ -490,10 +491,19 @@ void nes_cpu_reset(nes_cpu_t* cpu) {
     cpu->pending_nmi = 0;
     cpu->pending_irq = 0;
 
-    /* Read reset vector */
-    uint16_t reset_addr = g_bus->read(g_bus->context, NES_VECTOR_RESET);
-    reset_addr |= ((uint16_t)g_bus->read(g_bus->context, NES_VECTOR_RESET + 1)) << 8;
-    cpu->reg.pc = reset_addr;
+    /* Read reset vector - only if bus is available */
+    if (g_bus && g_bus->read && g_bus->context) {
+        printf("    Reading reset vector from bus...\n");
+        uint16_t reset_addr = g_bus->read(g_bus->context, NES_VECTOR_RESET);
+        reset_addr |= ((uint16_t)g_bus->read(g_bus->context, NES_VECTOR_RESET + 1)) << 8;
+        cpu->reg.pc = reset_addr;
+        printf("    Reset vector: 0x%04X\n", reset_addr);
+    } else {
+        /* Default reset vector for when bus not available */
+        printf("    No bus available, using default PC=0x8000\n");
+        cpu->reg.pc = 0x8000;  /* Fall back to start of PRG-ROM */
+    }
+    printf("    CPU reset complete, PC=0x%04X\n", cpu->reg.pc);
 }
 
 uint8_t nes_cpu_step(nes_cpu_t* cpu) {
