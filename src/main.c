@@ -9,16 +9,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
-/* SDL2 includes */
+/* Platform-specific headers */
 #ifdef _WIN32
-#include <SDL2/SDL.h>
+    #include <windows.h>
+    #include <SDL2/SDL.h>
 #else
-#include <SDL2/SDL.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <SDL2/SDL.h>
 #endif
 
+/* Local headers */
+#include "ppu/ppu.h"
+#include "cartridge/rom.h"
 #include "memory/bus.h"
 #include "platform/platform.h"
+#include "input/input.h"
 
 /* Version info */
 #define NESPRESSO_VERSION "0.9.0"
@@ -75,7 +83,6 @@ static nes_platform_t g_platform;
 /* Initialize save directory */
 static int create_save_directory(void) {
     /* Create save directory if it doesn't exist */
-    /* Cross-platform directory creation */
 #ifdef _WIN32
     CreateDirectoryA("save", NULL);
 #else
@@ -174,7 +181,7 @@ int main(int argc, char* argv[]) {
     printf("Hotkeys: F1=Reset, F5=Save, F9=Load, F11=Fullscreen, ESC=Exit\n");
 
     /* Frame buffer for rendering */
-    uint32_t frame_buffer[NES_WIDTH * NES_HEIGHT];
+    uint32_t frame_buffer[PPU_WIDTH * PPU_HEIGHT];
 
     /* Set system as audio user data */
     g_platform.audio.device = (void*)&g_system;
@@ -205,11 +212,9 @@ int main(int argc, char* argv[]) {
             uint64_t elapsed = now - perf_start;
             if (elapsed > 0) {
                 uint32_t fps = (uint32_t)(frame_count * 1000000 / elapsed);
-                if (frame_count > 0) {
-                    /* Only print FPS occasionally to avoid spam */
-                    if (frame_count % 360 == 0) {
-                        printf("FPS: %d\n", fps);
-                    }
+                /* Only print FPS occasionally to avoid spam */
+                if (frame_count % 360 == 0) {
+                    printf("FPS: %d\n", fps);
                 }
             }
         }
@@ -227,7 +232,7 @@ int main(int argc, char* argv[]) {
     printf("\nShutting down...\n");
 
     /* Save SRAM if needed */
-    if (g_system.cartridge->info.has_battery) {
+    if (g_system.cartridge && g_system.cartridge->info.has_battery) {
         printf("Saving SRAM...\n");
         nes_cartridge_save_sram(g_system.cartridge, "save/sram.sav");
     }

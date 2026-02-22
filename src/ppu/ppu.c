@@ -136,72 +136,72 @@ static void ppu_write_vram(nes_ppu_t* ppu, uint16_t addr, uint8_t val) {
 /* Increment VRAM address */
 static void increment_vram_addr(nes_ppu_t* ppu) {
     if (ppu->reg.ctrl & PPUCTRL_INC32) {
-        ppu->scroll.v += 32;
+        ppu->reg.scroll.v += 32;
     } else {
-        ppu->scroll.v++;
+        ppu->reg.scroll.v++;
     }
-    ppu->scroll.v &= 0x7FFF;
+    ppu->reg.scroll.v &= 0x7FFF;
 }
 
 /* Scroll register operations */
 static void write_ppu_scroll_x(nes_ppu_t* ppu, uint8_t val) {
-    ppu->scroll.t = (ppu->scroll.t & ~0x001F) | ((val >> 3) & 0x001F);
-    ppu->scroll.x = val & 0x07;
-    ppu->scroll.w = 1;
+    ppu->reg.scroll.t = (ppu->reg.scroll.t & ~0x001F) | ((val >> 3) & 0x001F);
+    ppu->reg.scroll.x = val & 0x07;
+    ppu->reg.scroll.w = 1;
 }
 
 static void write_ppu_scroll_y(nes_ppu_t* ppu, uint8_t val) {
-    ppu->scroll.t = (ppu->scroll.t & 0x0FBE0) | ((val & 0xF8) << 2);
-    ppu->scroll.t = (ppu->scroll.t & 0x7C1F) | ((val & 0x07) << 12);
-    ppu->scroll.w = 0;
+    ppu->reg.scroll.t = (ppu->reg.scroll.t & 0x0FBE0) | ((val & 0xF8) << 2);
+    ppu->reg.scroll.t = (ppu->reg.scroll.t & 0x7C1F) | ((val & 0x07) << 12);
+    ppu->reg.scroll.w = 0;
 }
 
 static void write_ppu_addr(nes_ppu_t* ppu, uint8_t val) {
-    if (!ppu->scroll.w) {
+    if (!ppu->reg.scroll.w) {
         /* First byte - high byte */
-        ppu->scroll.t = (ppu->scroll.t & 0x80FF) | ((uint16_t)val & 0x3F) << 8;
-        ppu->scroll.v = (ppu->scroll.v & 0x80FF) | ((uint16_t)val & 0x3F) << 8;
-        ppu->scroll.w = 1;
+        ppu->reg.scroll.t = (ppu->reg.scroll.t & 0x80FF) | ((uint16_t)val & 0x3F) << 8;
+        ppu->reg.scroll.v = (ppu->reg.scroll.v & 0x80FF) | ((uint16_t)val & 0x3F) << 8;
+        ppu->reg.scroll.w = 1;
     } else {
         /* Second byte - low byte */
-        ppu->scroll.t = (ppu->scroll.t & 0x7F00) | val;
-        ppu->scroll.v = (ppu->scroll.v & 0x7F00) | val;
-        ppu->scroll.w = 0;
+        ppu->reg.scroll.t = (ppu->reg.scroll.t & 0x7F00) | val;
+        ppu->reg.scroll.v = (ppu->reg.scroll.v & 0x7F00) | val;
+        ppu->reg.scroll.w = 0;
     }
 }
 
 /* Copy t to v, used at render start */
 static void copy_t_to_v(nes_ppu_t* ppu) {
-    ppu->scroll.v &= 0x841F;  /* Keep only preserved bits */
-    ppu->scroll.v |= (ppu->scroll.t & 0x7BE0);
+    ppu->reg.scroll.v &= 0x841F;  /* Keep only preserved bits */
+    ppu->reg.scroll.v |= (ppu->reg.scroll.t & 0x7BE0);
 }
 
 /* Increment horizontal scroll position */
 static void increment_x(nes_ppu_t* ppu) {
-    if ((ppu->scroll.v & 0x001F) == 31) {
-        ppu->scroll.v &= ~0x001F;
-        ppu->scroll.v ^= 0x0400;
+    if ((ppu->reg.scroll.v & 0x001F) == 31) {
+        ppu->reg.scroll.v &= ~0x001F;
+        ppu->reg.scroll.v ^= 0x0400;
     } else {
-        ppu->scroll.v++;
+        ppu->reg.scroll.v++;
     }
 }
 
 /* Increment vertical scroll position */
 static void increment_y(nes_ppu_t* ppu) {
-    if ((ppu->scroll.v & 0x7000) != 0x7000) {
-        ppu->scroll.v += 0x1000;
+    if ((ppu->reg.scroll.v & 0x7000) != 0x7000) {
+        ppu->reg.scroll.v += 0x1000;
     } else {
-        ppu->scroll.v &= ~0x7000;
-        uint8_t y = (ppu->scroll.v & 0x03E0) >> 5;
+        ppu->reg.scroll.v &= ~0x7000;
+        uint8_t y = (ppu->reg.scroll.v & 0x03E0) >> 5;
         if (y == 29) {
             y = 0;
-            ppu->scroll.v ^= 0x0800;
+            ppu->reg.scroll.v ^= 0x0800;
         } else if (y == 31) {
             y = 0;
         } else {
             y++;
         }
-        ppu->scroll.v = (ppu->scroll.v & ~0x03E0) | (y << 5);
+        ppu->reg.scroll.v = (ppu->reg.scroll.v & ~0x03E0) | (y << 5);
     }
 }
 
@@ -216,16 +216,16 @@ static void load_background_shifters(nes_ppu_t* ppu) {
 
 /* Fetch background tile data */
 static void fetch_tile_data(nes_ppu_t* ppu, uint16_t *addr_lo, uint16_t *addr_hi) {
-    uint16_t nametable_addr = 0x2000 | (ppu->scroll.v & 0x0FFF);
+    uint16_t nametable_addr = 0x2000 | (ppu->reg.scroll.v & 0x0FFF);
     uint8_t tile_index = ppu_read_vram(nametable_addr);
 
-    uint16_t attr_addr = 0x23C0 | (ppu->scroll.v & 0x0C00) |
-                        ((ppu->scroll.v >> 4) & 0x38) |
-                        ((ppu->scroll.v >> 2) & 0x07);
+    uint16_t attr_addr = 0x23C0 | (ppu->reg.scroll.v & 0x0C00) |
+                        ((ppu->reg.scroll.v >> 4) & 0x38) |
+                        ((ppu->reg.scroll.v >> 2) & 0x07);
     uint8_t attr = ppu_read_vram(attr_addr);
 
-    if (ppu->scroll.v & 0x40) attr >>= 2;
-    if (ppu->scroll.v & 0x02) attr >>= 2;
+    if (ppu->reg.scroll.v & 0x40) attr >>= 2;
+    if (ppu->reg.scroll.v & 0x02) attr >>= 2;
     attr &= 0x03;
 
     ppu->background_fetch_attr = ((attr & 0x01) ? 0xFF : 0x00);
@@ -233,7 +233,7 @@ static void fetch_tile_data(nes_ppu_t* ppu, uint16_t *addr_lo, uint16_t *addr_hi
     ppu->attribute_latch_lo = ~ppu->attribute_latch_hi;
 
     uint16_t pattern_table = (ppu->reg.ctrl & PPUCTRL_BG_ADDR) ? 0x1000 : 0x0000;
-    *addr_lo = pattern_table + ((uint16_t)tile_index << 4) + ((ppu->scroll.v >> 12) & 0x07);
+    *addr_lo = pattern_table + ((uint16_t)tile_index << 4) + ((ppu->reg.scroll.v >> 12) & 0x07);
     *addr_hi = *addr_lo + 8;
 }
 
@@ -338,14 +338,14 @@ static void render_scanline(nes_ppu_t* ppu) {
                 if (!(ppu->reg.mask & PPUMASK_SHOW_BGR8) && x < 8) {
                     bg_pixel = 0;
                 } else {
-                    uint8_t shift = 15 - ppu->scroll.x - (x % 8);
+                    uint8_t shift = 15 - ppu->reg.scroll.x - (x % 8);
                     if (shift >= 0) {
                         bg_pixel = ((ppu->background_shift_lo >> shift) & 0x01) |
                                    (((ppu->background_shift_hi >> shift) & 0x01) << 1);
                     }
                     if (bg_pixel) {
-                        bg_palette = ((ppu->attribute_shift_lo >> (15 - ppu->scroll.x - (x % 8))) & 0x01) |
-                                    (((ppu->attribute_shift_hi >> (15 - ppu->scroll.x - (x % 8))) & 0x01) << 1);
+                        bg_palette = ((ppu->attribute_shift_lo >> (15 - ppu->reg.scroll.x - (x % 8))) & 0x01) |
+                                    (((ppu->attribute_shift_hi >> (15 - ppu->reg.scroll.x - (x % 8))) & 0x01) << 1);
                     }
                 }
             }
@@ -397,7 +397,7 @@ void nes_ppu_reset(nes_ppu_t* ppu) {
     ppu->reg.ctrl = 0;
     ppu->reg.mask = 0;
     ppu->reg.oam_addr = 0;
-    ppu->scroll.w = 0;
+    ppu->reg.scroll.w = 0;
     ppu->reg.data_buffer = 0;
     ppu->reg.status = PPUSTATUS_VBLANK;
 }
@@ -447,7 +447,7 @@ int nes_ppu_step(nes_ppu_t* ppu) {
                 if (!(ppu->reg.mask & PPUMASK_SHOW_BGR8) && x < 8) {
                     pixel = 0;
                 } else {
-                    uint8_t shift = 7 - ((x + ppu->scroll.x) % 8) /*ppu->scroll.x*/;
+                    uint8_t shift = 7 - ((x + ppu->reg.scroll.x) % 8) /*ppu->reg.scroll.x*/;
                     if (shift <= 15) {
                         uint8_t bg_lo = (ppu->background_shift_lo >> shift) & 0x01;
                         uint8_t bg_hi = (ppu->background_shift_hi >> shift) & 0x01;
@@ -455,9 +455,9 @@ int nes_ppu_step(nes_ppu_t* ppu) {
 
                         if (pixel && (x & 3) == 0) {
                             /* Get attribute at tile boundaries */
-                            uint16_t attr_addr = 0x23C0 | (ppu->scroll.v & 0x0C00) |
-                                               ((ppu->scroll.v >> 4) & 0x38) |
-                                               ((ppu->scroll.v >> 2) & 0x07);
+                            uint16_t attr_addr = 0x23C0 | (ppu->reg.scroll.v & 0x0C00) |
+                                               ((ppu->reg.scroll.v >> 4) & 0x38) |
+                                               ((ppu->reg.scroll.v >> 2) & 0x07);
                             uint8_t attr = ppu_read_vram(attr_addr);
 
                             if ((x / 2) & 1) attr >>= 2;
@@ -528,7 +528,7 @@ int nes_ppu_step(nes_ppu_t* ppu) {
 
         /* Reset X at cycle 257 */
         if (ppu->cycle == 257) {
-            ppu->scroll.v = (ppu->scroll.v & 0xFBE0) | (ppu->scroll.t & 0x041F);
+            ppu->reg.scroll.v = (ppu->reg.scroll.v & 0xFBE0) | (ppu->reg.scroll.t & 0x041F);
         }
     }
     /* Post-render scanline (240) */
@@ -581,7 +581,7 @@ int nes_ppu_step(nes_ppu_t* ppu) {
             if (ppu->odd_frame && ppu->cycle == 304) {
                 /* Skip last cycle on odd frames */
             } else {
-                ppu->scroll.v = (ppu->scroll.v & 0x841F) | (ppu->scroll.t & 0x7BE0);
+                ppu->reg.scroll.v = (ppu->reg.scroll.v & 0x841F) | (ppu->reg.scroll.t & 0x7BE0);
             }
         }
 
@@ -597,7 +597,7 @@ int nes_ppu_step(nes_ppu_t* ppu) {
         }
 
         if (ppu->cycle == 257) {
-            ppu->scroll.v = (ppu->scroll.v & 0xFBE0) | (ppu->scroll.t & 0x041F);
+            ppu->reg.scroll.v = (ppu->reg.scroll.v & 0xFBE0) | (ppu->reg.scroll.t & 0x041F);
         }
     }
 
@@ -636,7 +636,7 @@ void nes_ppu_cpu_write(nes_ppu_t* ppu, uint16_t addr, uint8_t val) {
                     /* May trigger immediate NMI */
                 }
             }
-            ppu->scroll.t = (ppu->scroll.t & 0x73FF) | ((val & 0x03) << 10);
+            ppu->reg.scroll.t = (ppu->reg.scroll.t & 0x73FF) | ((val & 0x03) << 10);
             break;
 
         case 1:  /* PPUMASK */
@@ -652,7 +652,7 @@ void nes_ppu_cpu_write(nes_ppu_t* ppu, uint16_t addr, uint8_t val) {
             break;
 
         case 5:  /* PPUSCROLL */
-            if (!ppu->scroll.w) {
+            if (!ppu->reg.scroll.w) {
                 write_ppu_scroll_x(ppu, val);
             } else {
                 write_ppu_scroll_y(ppu, val);
@@ -664,7 +664,7 @@ void nes_ppu_cpu_write(nes_ppu_t* ppu, uint16_t addr, uint8_t val) {
             break;
 
         case 7:  /* PPUDATA */
-            ppu_write_vram(ppu, ppu->scroll.v, val);
+            ppu_write_vram(ppu, ppu->reg.scroll.v, val);
             increment_vram_addr(ppu);
             break;
     }
@@ -679,7 +679,7 @@ uint8_t nes_ppu_cpu_read(nes_ppu_t* ppu, uint16_t addr) {
             result = ppu->reg.status & (PPUSTATUS_VBLANK | PPUSTATUS_SP0_HIT | PPUSTATUS_SP_OVF);
             result |= ppu->reg.data_buffer & 0x1F;  /* Open bus */
             ppu->reg.status &= ~PPUSTATUS_VBLANK;
-            ppu->scroll.w = 0;
+            ppu->reg.scroll.w = 0;
             break;
 
         case 4:  /* OAMDATA */
@@ -688,10 +688,10 @@ uint8_t nes_ppu_cpu_read(nes_ppu_t* ppu, uint16_t addr) {
 
         case 7:  /* PPUDATA */
             result = ppu->reg.data_buffer;
-            ppu->reg.data_buffer = ppu_read_vram(ppu->scroll.v);
+            ppu->reg.data_buffer = ppu_read_vram(ppu->reg.scroll.v);
 
             /* Palette reads are not buffered */
-            if ((ppu->scroll.v & 0x3FFF) >= 0x3F00) {
+            if ((ppu->reg.scroll.v & 0x3FFF) >= 0x3F00) {
                 result = ppu->reg.data_buffer;
             }
             increment_vram_addr(ppu);

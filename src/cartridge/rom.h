@@ -17,12 +17,9 @@ extern "C" {
 #endif
 
 /* ROM Constants */
-#define NES_ROM_HEADER_SIZE  16
 #define NES_PRG_ROM_SIZE     16384   /* 16KB */
 #define NES_CHR_ROM_SIZE     8192    /* 8KB */
-#define NES_MAX_PRG_ROM      512     /* Max 8MB */
-#define NES_MAX_CHR_ROM      512     /* Max 4MB */
-#define NES_MAX_SIZE         (NES_MAX_PRG_ROM * NES_PRG_ROM_SIZE + NES_MAX_CHR_ROM * NES_CHR_ROM_SIZE)
+#define NES_PRG_RAM_SIZE     8192    /* 8KB SRAM */
 
 /* NES Header Magic */
 #define NES_MAGIC "NES\x1A"
@@ -81,8 +78,6 @@ typedef struct {
     int             playchoice;     /* PlayChoice-10 game */
     int             is_nes_2_0;     /* NES 2.0 header */
     int             is_pal;         /* PAL system */
-    uint8_t*        prg_rom;        /* PRG-ROM data */
-    uint8_t*        chr_rom;        /* CHR-ROM/RAM data */
     uint32_t        crc32;          /* ROM CRC32 */
     char            title[256];     /* ROM title (from database) */
 } nes_rom_info_t;
@@ -92,7 +87,7 @@ typedef struct nes_cartridge {
     nes_rom_info_t  info;
     uint8_t*        prg_rom;
     uint8_t*        chr_rom;
-    uint8_t*        prg_ram;        /* Save RAM (8KB standard) */
+    uint8_t*        prg_ram;
     size_t          prg_rom_size;
     size_t          chr_rom_size;
     size_t          prg_ram_size;
@@ -111,84 +106,21 @@ typedef enum {
 
 /* API Functions */
 
-/**
- * Initialize cartridge structure
- */
 void nes_cartridge_init(nes_cartridge_t* cart);
-
-/**
- * Free cartridge resources
- */
 void nes_cartridge_free(nes_cartridge_t* cart);
-
-/**
- * Load NES ROM from file
- */
 nes_rom_result_t nes_cartridge_load(nes_cartridge_t* cart, const char* filename);
-
-/**
- * Load NES ROM from memory buffer
- */
 nes_rom_result_t nes_cartridge_load_memory(nes_cartridge_t* cart, const uint8_t* data, size_t size);
-
-/**
- * Get mapper number from ROM
- */
 int nes_cartridge_get_mapper(const nes_cartridge_t* cart);
-
-/**
- * Check if ROM has battery-backed SRAM
- */
 int nes_cartridge_has_battery(const nes_cartridge_t* cart);
-
-/**
- * Get mirroring mode
- */
 mirroring_t nes_cartridge_get_mirroring(const nes_cartridge_t* cart);
-
-/**
- * Read PRG-ROM at address
- */
 uint8_t nes_cartridge_read_prg(const nes_cartridge_t* cart, uint32_t addr);
-
-/**
- * Write PRG-RAM at address
- */
 void nes_cartridge_write_prg_ram(nes_cartridge_t* cart, uint32_t addr, uint8_t val);
-
-/**
- * Read PRG-RAM at address
- */
 uint8_t nes_cartridge_read_prg_ram(const nes_cartridge_t* cart, uint32_t addr);
-
-/**
- * Read CHR-ROM/RAM at address
- */
 uint8_t nes_cartridge_read_chr(const nes_cartridge_t* cart, uint32_t addr);
-
-/**
- * Write CHR-RAM (if present) at address
- */
 void nes_cartridge_write_chr_ram(nes_cartridge_t* cart, uint32_t addr, uint8_t val);
-
-/**
- * Load SRAM from file
- */
 int nes_cartridge_load_sram(nes_cartridge_t* cart, const char* filename);
-
-/**
- * Save SRAM to file
- */
 int nes_cartridge_save_sram(const nes_cartridge_t* cart, const char* filename);
-
-/**
- * Calculate CRC32 of PRG+CHR data
- */
 uint32_t nes_cartridge_calc_crc32(const nes_cartridge_t* cart);
-
-/**
- * Get ROM info string
- */
 void nes_cartridge_get_info_string(const nes_cartridge_t* cart, char* buffer, size_t size);
 
 #ifdef __cplusplus

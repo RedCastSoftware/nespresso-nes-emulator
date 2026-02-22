@@ -16,7 +16,7 @@
 
 /* Forward declarations */
 typedef struct nes_system nes_system_t;
-typedef struct nes_input nes_input_t;
+typedef struct nes_input_state nes_input_t;
 
 #ifdef __cplusplus
 extern "C" {

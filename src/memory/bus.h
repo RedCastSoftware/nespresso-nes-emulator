@@ -18,7 +18,7 @@ typedef struct nes_ppu nes_ppu_t;
 typedef struct nes_apu nes_apu_t;
 typedef struct nes_mapper nes_mapper_t;
 typedef struct nes_cartridge nes_cartridge_t;
-typedef struct nes_input nes_input_t;
+typedef struct nes_input_state nes_input_t;
 
 #ifdef __cplusplus
 extern "C" {

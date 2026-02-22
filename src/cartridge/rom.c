@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PRG_RAM_SIZE 8192  /* Standard 8KB */
+#define NES_ROM_HEADER_SIZE  16  /* iNES header size */
 
 /* CRC32 Lookup Table */
 static uint32_t g_crc32_table[256];
@@ -52,13 +52,9 @@ void nes_cartridge_free(nes_cartridge_t* cart) {
         free(cart->chr_rom);
         cart->chr_rom = NULL;
     }
-    if (cart->info.prg_rom) {
-        free(cart->info.prg_rom);
-        cart->info.prg_rom = NULL;
-    }
-    if (cart->info.chr_rom) {
-        free(cart->info.chr_rom);
-        cart->info.chr_rom = NULL;
+    if (cart->prg_ram) {
+        free(cart->prg_ram);
+        cart->prg_ram = NULL;
     }
 }
 
@@ -79,7 +75,7 @@ static nes_rom_result_t parse_header(const nes_rom_header_t* header, nes_cartrid
 
     /* Get ROM sizes */
     cart->info.prg_rom_banks = header->prg_rom_size;
-    cart->info.prg_rom_size = cart->info.prg_rom_banks * NES_PRG_ROM_SIZE;
+    cart->prg_rom_size = cart->info.prg_rom_banks * NES_PRG_ROM_SIZE;
 
     if (cart->info.is_nes_2_0) {
         /* NES 2.0 format */
@@ -89,7 +85,7 @@ static nes_rom_result_t parse_header(const nes_rom_header_t* header, nes_cartrid
     } else {
         cart->info.chr_rom_banks = header->chr_rom_size;
     }
-    cart->info.chr_rom_size = cart->info.chr_rom_banks * NES_CHR_ROM_SIZE;
+    cart->chr_rom_size = cart->info.chr_rom_banks * NES_CHR_ROM_SIZE;
 
     cart->info.has_chrram = (cart->info.chr_rom_banks == 0);
 
@@ -117,14 +113,14 @@ static nes_rom_result_t parse_header(const nes_rom_header_t* header, nes_cartrid
     cart->info.is_pal = (header->flags10 & FLAGS10_TV_SYSTEM) & 0x01;
 
     /* Allocate PRG-ROM */
-    cart->prg_rom = (uint8_t*)malloc(cart->info.prg_rom_size);
+    cart->prg_rom = (uint8_t*)malloc(cart->prg_rom_size);
     if (!cart->prg_rom) {
         return NES_ROM_ERROR_MEMORY;
     }
 
     /* Allocate CHR or CHR-RAM */
-    if (cart->info.chr_rom_size > 0) {
-        cart->chr_rom = (uint8_t*)malloc(cart->info.chr_rom_size);
+    if (cart->chr_rom_size > 0) {
+        cart->chr_rom = (uint8_t*)malloc(cart->chr_rom_size);
         if (!cart->chr_rom) {
             free(cart->prg_rom);
             cart->prg_rom = NULL;
@@ -143,13 +139,9 @@ static nes_rom_result_t parse_header(const nes_rom_header_t* header, nes_cartrid
 
     /* Allocate PRG-RAM (save RAM) */
     if (cart->info.has_battery || 1) {
-        cart->prg_ram_size = PRG_RAM_SIZE;
+        cart->prg_ram_size = NES_PRG_RAM_SIZE;
         cart->prg_ram = (uint8_t*)calloc(1, cart->prg_ram_size);
     }
-
-    /* Set pointers in info */
-    cart->info.prg_rom = cart->prg_rom;
-    cart->info.chr_rom = cart->chr_rom;
 
     return NES_ROM_OK;
 }
@@ -165,7 +157,7 @@ nes_rom_result_t nes_cartridge_load_memory(nes_cartridge_t* cart, const uint8_t*
     }
 
     size_t offset = NES_ROM_HEADER_SIZE;
-    size_t rom_size = offset + cart->info.prg_rom_size + cart->info.chr_rom_size;
+    size_t rom_size = offset + cart->prg_rom_size + cart->chr_rom_size;
 
     /* Check if trainer present */
     if (cart->info.has_trainer) {
@@ -180,18 +172,18 @@ nes_rom_result_t nes_cartridge_load_memory(nes_cartridge_t* cart, const uint8_t*
     }
 
     /* Copy PRG-ROM */
-    memcpy(cart->prg_rom, data + offset, cart->info.prg_rom_size);
-    offset += cart->info.prg_rom_size;
+    memcpy(cart->prg_rom, data + offset, cart->prg_rom_size);
+    offset += cart->prg_rom_size;
 
     /* Copy CHR-ROM */
     if (cart->info.chr_rom_banks > 0) {
-        memcpy(cart->chr_rom, data + offset, cart->info.chr_rom_size);
+        memcpy(cart->chr_rom, data + offset, cart->chr_rom_size);
     }
 
     /* Calculate CRC32 */
-    cart->info.crc32 = crc32_update(0, cart->prg_rom, cart->info.prg_rom_size);
+    cart->info.crc32 = crc32_update(0, cart->prg_rom, cart->prg_rom_size);
     if (cart->info.chr_rom_banks > 0) {
-        cart->info.crc32 = crc32_update(cart->info.crc32, cart->chr_rom, cart->info.chr_rom_size);
+        cart->info.crc32 = crc32_update(cart->info.crc32, cart->chr_rom, cart->chr_rom_size);
     }
 
     return NES_ROM_OK;
@@ -249,12 +241,12 @@ mirroring_t nes_cartridge_get_mirroring(const nes_cartridge_t* cart) {
 uint8_t nes_cartridge_read_prg(const nes_cartridge_t* cart, uint32_t addr) {
     addr &= 0x7FFF;  /* 32KB mask */
 
-    if (addr < cart->info.prg_rom_size) {
+    if (addr < cart->prg_rom_size) {
         return cart->prg_rom[addr];
     }
 
     /* Mirror PRG-ROM */
-    return cart->prg_rom[addr % cart->info.prg_rom_size];
+    return cart->prg_rom[addr % cart->prg_rom_size];
 }
 
 void nes_cartridge_write_prg_ram(nes_cartridge_t* cart, uint32_t addr, uint8_t val) {
@@ -315,9 +307,9 @@ int nes_cartridge_save_sram(const nes_cartridge_t* cart, const char* filename) {
 }
 
 uint32_t nes_cartridge_calc_crc32(const nes_cartridge_t* cart) {
-    uint32_t crc = crc32_update(0, cart->prg_rom, cart->info.prg_rom_size);
+    uint32_t crc = crc32_update(0, cart->prg_rom, cart->prg_rom_size);
     if (cart->info.chr_rom_banks > 0) {
-        crc = crc32_update(crc, cart->chr_rom, cart->info.chr_rom_size);
+        crc = crc32_update(crc, cart->chr_rom, cart->chr_rom_size);
     }
     return crc;
 }

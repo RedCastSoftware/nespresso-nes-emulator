@@ -26,11 +26,11 @@ static uint8_t mapper_0_cpu_read(void* ctx, uint16_t addr) {
     if (addr >= 0x8000) {
         /* 32KB PRG-ROM mapping */
         prg_addr = addr & 0x7FFF;
-        if (prg_addr < m->cart->info.prg_rom_size) {
+        if (prg_addr < m->cart->prg_rom_size) {
             return m->cart->prg_rom[prg_addr];
         }
         /* Mirror for 16KB ROMs */
-        return m->cart->prg_rom[prg_addr % m->cart->info.prg_rom_size];
+        return m->cart->prg_rom[prg_addr % m->cart->prg_rom_size];
     }
     return 0;
 }
@@ -119,10 +119,10 @@ static uint8_t mapper_1_cpu_read(void* ctx, uint16_t addr) {
                 /* 32KB mode: address lines A14 select bank */
                 bank = mmc1_get_bank(cart, (m->prg_bank & 0x0E) | ((addr >> 14) & 1));
                 base = (bank * NES_PRG_ROM_SIZE) + (addr & 0x7FFF);
-                if (base < cart->info.prg_rom_size) {
+                if (base < cart->prg_rom_size) {
                     return cart->prg_rom[base];
                 }
-                return cart->prg_rom[base % cart->info.prg_rom_size];
+                return cart->prg_rom[base % cart->prg_rom_size];
 
             case MMC1_PRG_MODE_2:
                 /* Fix first bank, switch last */
@@ -132,10 +132,10 @@ static uint8_t mapper_1_cpu_read(void* ctx, uint16_t addr) {
                     bank = m->prg_bank;
                     base = (bank * NES_PRG_ROM_SIZE) + (addr & 0x3FFF);
                 }
-                if (base < cart->info.prg_rom_size) {
+                if (base < cart->prg_rom_size) {
                     return cart->prg_rom[base];
                 }
-                return cart->prg_rom[base % cart->info.prg_rom_size];
+                return cart->prg_rom[base % cart->prg_rom_size];
 
             case MMC1_PRG_MODE_3:
                 /* Switch first bank, fix last */
@@ -146,10 +146,10 @@ static uint8_t mapper_1_cpu_read(void* ctx, uint16_t addr) {
                     base = (cart->info.prg_rom_banks - 1) * NES_PRG_ROM_SIZE;  /* Last bank */
                     base += (addr & 0x3FFF);
                 }
-                if (base < cart->info.prg_rom_size) {
+                if (base < cart->prg_rom_size) {
                     return cart->prg_rom[base];
                 }
-                return cart->prg_rom[base % cart->info.prg_rom_size];
+                return cart->prg_rom[base % cart->prg_rom_size];
         }
     }
 
@@ -317,10 +317,10 @@ static uint8_t mapper_2_cpu_read(void* ctx, uint16_t addr) {
             base += (addr & 0x3FFF);
         }
 
-        if (base < cart->info.prg_rom_size) {
+        if (base < cart->prg_rom_size) {
             return cart->prg_rom[base];
         }
-        return cart->prg_rom[base % cart->info.prg_rom_size];
+        return cart->prg_rom[base % cart->prg_rom_size];
     }
 
     /* PRG-RAM @ $6000-$7FFF */
@@ -387,10 +387,10 @@ static uint8_t mapper_3_cpu_read(void* ctx, uint16_t addr) {
 
     if (addr >= 0x8000) {
         uint32_t base = addr & 0x7FFF;
-        if (base < cart->info.prg_rom_size) {
+        if (base < cart->prg_rom_size) {
             return cart->prg_rom[base];
         }
-        return cart->prg_rom[base % cart->info.prg_rom_size];
+        return cart->prg_rom[base % cart->prg_rom_size];
     }
 
     if (addr >= 0x6000 && addr < 0x8000 && cart->prg_ram) {
@@ -504,11 +504,11 @@ static uint8_t mapper_4_cpu_read(void* ctx, uint16_t addr) {
             }
         }
 
-        base = (bank * NES_ROM_PRG_SIZE) * 8 + (addr & 0x1FFF);
-        if (base < cart->info.prg_rom_size) {
+        base = (bank * NES_PRG_ROM_SIZE) * 8 + (addr & 0x1FFF);
+        if (base < cart->prg_rom_size) {
             return cart->prg_rom[base];
         }
-        return cart->prg_rom[base % cart->info.prg_rom_size];
+        return cart->prg_rom[base % cart->prg_rom_size];
     }
 
     if (addr >= 0x6000 && addr < 0x8000 && cart->prg_ram) {
@@ -639,10 +639,10 @@ static uint8_t mapper_7_cpu_read(void* ctx, uint16_t addr) {
     if (addr >= 0x8000) {
         uint8_t bank = m->prg_bank & (cart->info.prg_rom_banks - 1);
         uint32_t base = (bank * NES_PRG_ROM_SIZE) + (addr & 0x7FFF);
-        if (base < cart->info.prg_rom_size) {
+        if (base < cart->prg_rom_size) {
             return cart->prg_rom[base];
         }
-        return cart->prg_rom[base % cart->info.prg_rom_size];
+        return cart->prg_rom[base % cart->prg_rom_size];
     }
 
     return 0;
