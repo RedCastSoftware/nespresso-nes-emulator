@@ -1,0 +1,68 @@
+# Compiled files
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+*.a
+*.lib
+*.res
+
+# Build directories
+build/
+dist/
+bin/
+Debug/
+Release/
+x64/
+
+# IDE and editor files
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+*.filters
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Save states and SRAM
+save/
+sram.sav
+*.sav
+*.state
+
+# Screenshots
+screenshot*.png
+screenshot*.bmp
+
+# ROMs (don't commit copyrighted ROMs)
+roms/*.nes
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+temp/
