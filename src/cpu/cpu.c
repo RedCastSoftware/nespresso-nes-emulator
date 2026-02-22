@@ -287,16 +287,21 @@ static const opcode_info_t g_opcode_table[256] = {
     /* $FF */ {"??? ", MODE_IMPLIED, 2, 1},
 };
 
-/* Global bus pointer for memory access */
-static cpu_bus_t* g_bus = NULL;
+/* Global bus pointer - static storage that persists beyond function calls */
+static cpu_bus_t g_cpu_bus_static = {NULL, NULL, NULL};
+
+/* Global bus pointer (accessed via extern declaration in header) */
+cpu_bus_t* g_bus = &g_cpu_bus_static;
 
 /* Helper functions */
 
 static void read8(nes_cpu_t* cpu, uint16_t addr, uint8_t* out) {
+    (void)cpu;
     *out = g_bus->read(g_bus->context, addr);
 }
 
 static void read16(nes_cpu_t* cpu, uint16_t addr, uint16_t* out) {
+    (void)cpu;
     *out = g_bus->read(g_bus->context, addr);
     *out |= ((uint16_t)g_bus->read(g_bus->context, addr + 1)) << 8;
 }
@@ -518,9 +523,9 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
     if (cpu->pending_nmi) {
         cpu->pending_nmi = 0;
         /* NMI takes 7 cycles */
-        nes_cpu_push_word(cpu, g_bus, cpu->reg.pc);
+        nes_cpu_push_word(cpu, cpu->reg.pc);
         uint8_t status = cpu->reg.p | FLAG_UNUSED;
-        nes_cpu_push(cpu, g_bus, status);
+        nes_cpu_push(cpu, status);
 
         uint16_t nmi_addr = g_bus->read(g_bus->context, NES_VECTOR_NMI);
         nmi_addr |= ((uint16_t)g_bus->read(g_bus->context, NES_VECTOR_NMI + 1)) << 8;
@@ -534,9 +539,9 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
     if (cpu->pending_irq && !nes_cpu_get_flag(cpu, FLAG_INTERRUPT)) {
         cpu->pending_irq = 0;
         /* IRQ takes 7 cycles */
-        nes_cpu_push_word(cpu, g_bus, cpu->reg.pc);
+        nes_cpu_push_word(cpu, cpu->reg.pc);
         uint8_t status = cpu->reg.p | FLAG_UNUSED;
-        nes_cpu_push(cpu, g_bus, status);
+        nes_cpu_push(cpu, status);
 
         uint16_t irq_addr = g_bus->read(g_bus->context, NES_VECTOR_IRQ_BRK);
         irq_addr |= ((uint16_t)g_bus->read(g_bus->context, NES_VECTOR_IRQ_BRK + 1)) << 8;
@@ -631,9 +636,9 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
         /* BRK - Force Interrupt */
         case 0x00:
             cpu->reg.pc++;
-            nes_cpu_push_word(cpu, g_bus, cpu->reg.pc);
+            nes_cpu_push_word(cpu, cpu->reg.pc);
             uint8_t status = cpu->reg.p | FLAG_BREAK | FLAG_UNUSED;
-            nes_cpu_push(cpu, g_bus, status);
+            nes_cpu_push(cpu, status);
             uint16_t brk_addr = g_bus->read(g_bus->context, NES_VECTOR_IRQ_BRK);
             brk_addr |= ((uint16_t)g_bus->read(g_bus->context, NES_VECTOR_IRQ_BRK + 1)) << 8;
             cpu->reg.pc = brk_addr;
@@ -751,7 +756,7 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
         case 0x20: {
             uint16_t addr = get_effective_address(cpu, MODE_ABSOLUTE);
             cpu->reg.pc--;  /* JSR pushes return address - 1 */
-            nes_cpu_push_word(cpu, g_bus, cpu->reg.pc);
+            nes_cpu_push_word(cpu, cpu->reg.pc);
             cpu->reg.pc = addr + 1;
             break;
         }
@@ -807,23 +812,23 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
 
         /* PHA - Push Accumulator */
         case 0x48:
-            nes_cpu_push(cpu, g_bus, cpu->reg.a);
+            nes_cpu_push(cpu, cpu->reg.a);
             break;
 
         /* PHP - Push Processor Status */
         case 0x08:
-            nes_cpu_push(cpu, g_bus, cpu->reg.p | FLAG_BREAK | FLAG_UNUSED);
+            nes_cpu_push(cpu, cpu->reg.p | FLAG_BREAK | FLAG_UNUSED);
             break;
 
         /* PLA - Pull Accumulator */
         case 0x68:
-            cpu->reg.a = nes_cpu_pop(cpu, g_bus);
+            cpu->reg.a = nes_cpu_pop(cpu);
             nes_cpu_update_zn(cpu, cpu->reg.a);
             break;
 
         /* PLP - Pull Processor Status */
         case 0x28: {
-            uint8_t status = nes_cpu_pop(cpu, g_bus);
+            uint8_t status = nes_cpu_pop(cpu);
             cpu->reg.p = (status & ~(FLAG_BREAK | FLAG_UNUSED)) | FLAG_UNUSED;
             break;
         }
@@ -872,16 +877,16 @@ uint8_t nes_cpu_step(nes_cpu_t* cpu) {
 
         /* RTI - Return from Interrupt */
         case 0x40: {
-            uint8_t status = nes_cpu_pop(cpu, g_bus);
+            uint8_t status = nes_cpu_pop(cpu);
             cpu->reg.p = (status & ~(FLAG_BREAK | FLAG_UNUSED)) | FLAG_UNUSED;
-            uint16_t pc = nes_cpu_pop_word(cpu, g_bus);
+            uint16_t pc = nes_cpu_pop_word(cpu);
             cpu->reg.pc = pc;
             break;
         }
 
         /* RTS - Return from Subroutine */
         case 0x60: {
-            uint16_t pc = nes_cpu_pop_word(cpu, g_bus);
+            uint16_t pc = nes_cpu_pop_word(cpu);
             cpu->reg.pc = pc + 1;
             break;
         }
@@ -987,10 +992,18 @@ void nes_cpu_trigger_irq(nes_cpu_t* cpu) {
 }
 
 void nes_cpu_set_bus(nes_cpu_t* cpu, cpu_bus_t* bus) {
-    g_bus = bus;
+    /* Copy bus configuration to static storage */
+    if (bus) {
+        g_cpu_bus_static.context = bus->context;
+        g_cpu_bus_static.read = bus->read;
+        g_cpu_bus_static.write = bus->write;
+    }
+    g_bus = &g_cpu_bus_static;
+    (void)cpu;  /* unused */
 }
 
 void nes_cpu_disassemble(nes_cpu_t* cpu, uint16_t addr, char* buffer, size_t buffer_size) {
+    (void)cpu;  /* unused */
     uint8_t opcode = g_bus->read(g_bus->context, addr);
     const opcode_info_t* info = &g_opcode_table[opcode];
 

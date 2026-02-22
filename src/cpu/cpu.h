@@ -134,6 +134,9 @@ void nes_cpu_disassemble(nes_cpu_t* cpu, uint16_t addr, char* buffer, size_t buf
  */
 void nes_cpu_set_bus(nes_cpu_t* cpu, cpu_bus_t* bus);
 
+/* Global CPU bus pointer (defined in cpu.c) */
+extern cpu_bus_t* g_bus;
+
 /* Address mode helpers */
 
 static inline uint8_t nes_cpu_get_flag(nes_cpu_t* cpu, uint8_t flag) {
@@ -159,22 +162,22 @@ static inline void nes_cpu_update_zn(nes_cpu_t* cpu, uint8_t val) {
 
 /* Stack operations */
 
-static inline void nes_cpu_push(nes_cpu_t* cpu, cpu_bus_t* bus, uint8_t val) {
-    bus->write(bus->context, NES_STACK_BASE + cpu->reg.sp--, val);
+static inline void nes_cpu_push(nes_cpu_t* cpu, uint8_t val) {
+    g_bus->write(g_bus->context, NES_STACK_BASE + cpu->reg.sp--, val);
 }
 
-static inline uint8_t nes_cpu_pop(nes_cpu_t* cpu, cpu_bus_t* bus) {
-    return bus->read(bus->context, NES_STACK_BASE + ++cpu->reg.sp);
+static inline uint8_t nes_cpu_pop(nes_cpu_t* cpu) {
+    return g_bus->read(g_bus->context, NES_STACK_BASE + ++cpu->reg.sp);
 }
 
-static inline void nes_cpu_push_word(nes_cpu_t* cpu, cpu_bus_t* bus, uint16_t val) {
-    nes_cpu_push(cpu, bus, (val >> 8) & 0xFF);
-    nes_cpu_push(cpu, bus, val & 0xFF);
+static inline void nes_cpu_push_word(nes_cpu_t* cpu, uint16_t val) {
+    nes_cpu_push(cpu, (val >> 8) & 0xFF);
+    nes_cpu_push(cpu, val & 0xFF);
 }
 
-static inline uint16_t nes_cpu_pop_word(nes_cpu_t* cpu, cpu_bus_t* bus) {
-    uint8_t lo = nes_cpu_pop(cpu, bus);
-    uint8_t hi = nes_cpu_pop(cpu, bus);
+static inline uint16_t nes_cpu_pop_word(nes_cpu_t* cpu) {
+    uint8_t lo = nes_cpu_pop(cpu);
+    uint8_t hi = nes_cpu_pop(cpu);
     return (hi << 8) | lo;
 }
 

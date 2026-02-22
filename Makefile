@@ -1,25 +1,46 @@
-# NESPRESSO NES Emulator - Makefile for MinGW on Windows
+# NESPRESSO NES Emulator - Makefile
 # Brewing Nostalgia One Frame at a Time!
+
+# Detect OS
+UNAME_S := $(shell uname -s)
 
 # Compiler settings
 CC = gcc
-WINDRES = windres
 CFLAGS = -O3 -Wall -Wextra -Isrc -I. -Iinclude -march=native
-LDFLAGS = -mwindows
+
+# SDL2 configuration
 SDL_CFLAGS := $(shell sdl2-config --cflags 2>/dev/null || pkg-config --cflags sdl2 2>/dev/null)
 SDL_LIBS := $(shell sdl2-config --libs 2>/dev/null || pkg-config --libs sdl2 2>/dev/null)
 
-# If SDL2 not found, try common locations
-ifeq ($(SDL_CFLAGS),)
+# Platform-specific settings
+ifeq ($(OS),Windows_NT)
+    # Windows (Make for Windows)
+    WINDRES = windres
+    LDFLAGS = -mwindows
+    TARGET = NESPRESSO.exe
+    ifeq ($(SDL_CFLAGS),)
 	SDL_CFLAGS = -IC:/msys64/mingw64/include/SDL2 -IC:/SDL2/include -Dmain=SDL_main
-endif
-ifeq ($(SDL_LIBS),)
+    endif
+    ifeq ($(SDL_LIBS),)
 	SDL_LIBS = -LC:/msys64/mingw64/lib -LC:/SDL2/lib/x64 -lmingw32 -lSDL2main -lSDL2 -mwindows
+    endif
+    LDFLAGS += -mconsole $(SDL_LIBS)
+else ifeq ($(UNAME_S),Linux)
+    # Linux
+    TARGET = NESPRESSO
+    LDFLAGS = $(SDL_LIBS) -lm -lpthread
+else ifeq ($(UNAME_S),Darwin)
+    # macOS
+    TARGET = NESPRESSO
+    LDFLAGS = $(SDL_LIBS) -framework Cocoa -lm
+else
+    # Assume Linux/Unix as default
+    TARGET = NESPRESSO
+    LDFLAGS = $(SDL_LIBS) -lm -lpthread
 endif
 
 # Combine flags
 CFLAGS += $(SDL_CFLAGS)
-LDFLAGS += -mconsole $(SDL_LIBS)
 
 # Source files
 SRCS = src/main.c \
@@ -78,23 +99,8 @@ endif
 # Clean build artifacts
 clean:
 	@echo "Cleaning..."
-	if exist *.o del *.o >nul 2>&1 || true
-	if exist *.exe del *.exe >nul 2>&1 || true
-	for /D %%d in (src\*) do @if exist "%%d\*.o" del /Q "%%d\*.o" >nul 2>&1 || true
+	@rm -f $(OBJS) $(TARGET)
 	@echo "Clean complete"
-
-# Install (copy to directory)
-install: $(TARGET)
-	@echo "Installing to C:\\Program Files\\NESPRESSO..."
-	if not exist "C:\Program Files\NESPRESSO" mkdir "C:\Program Files\NESPRESSO"
-	copy $(TARGET) "C:\Program Files\NESPRESSO\" /Y >nul
-	@echo "Installation complete"
-
-# Uninstall
-uninstall:
-	@echo "Uninstalling..."
-	if exist "C:\Program Files\NESPRESSO\$(TARGET)" del "C:\Program Files\NESPRESSO\$(TARGET)" /Q >nul
-	@echo "Uninstallation complete"
 
 # Help
 help:
@@ -106,15 +112,7 @@ help:
 	@echo "  debug     - Build with debug symbols"
 	@echo "  clean     - Remove build artifacts"
 	@echo "  run       - Run emulator (specify ROM=game.nes)"
-	@echo "  install   - Install to Program Files"
-	@echo "  uninstall - Remove installation"
 	@echo ""
 	@echo "Prerequisites:"
-	@echo "  - MinGW-w64 gcc"
-	@echo "  - SDL2 development libraries"
-	@echo ""
-	@echo "Quick setup:"
-	@echo "  1. Install MSYS2 from https://www.msys2.org/"
-	@echo "  2. In MSYS2 MinGW 64-bit terminal:"
-	@echo "     pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2"
-	@echo "  3. Run: make"
+	@echo "  - gcc"
+	@echo "  - SDL2 development libraries (libsdl2-dev on Debian/Ubuntu, sdl2 on Arch)"

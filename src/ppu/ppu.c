@@ -29,7 +29,8 @@ static const uint8_t g_nes_palette[64][3] = {
     {0xB5,0xEB,0xF2}, {0xB8,0xB8,0xB8}, {0x00,0x00,0x00}, {0x00,0x00,0x00},
 };
 
-/* Static PPU bus */
+/* Static PPU bus - static storage that persists beyond function calls */
+static ppu_bus_t g_ppu_bus_static = {NULL, NULL, NULL, NULL};
 static ppu_bus_t* g_ppu_bus = NULL;
 
 /* Frame buffer for rendering */
@@ -381,7 +382,8 @@ static void render_scanline(nes_ppu_t* ppu) {
 
 void nes_ppu_init(nes_ppu_t* ppu, ppu_bus_t* bus) {
     memset(ppu, 0, sizeof(nes_ppu_t));
-    g_ppu_bus = bus;
+    (void)bus;  /* unused - bus is set later via nes_ppu_set_bus */
+    g_ppu_bus = &g_ppu_bus_static;
 
     /* Initialize palette with default values */
     for (int i = 0; i < 32; i++) {
@@ -735,11 +737,20 @@ void nes_ppu_render_frame(nes_ppu_t* ppu, uint32_t* buffer) {
 }
 
 const uint8_t* nes_ppu_get_frame_buffer(nes_ppu_t* ppu) {
+    (void)ppu;  /* unused */
     return g_frame_buffer;
 }
 
 void nes_ppu_set_bus(nes_ppu_t* ppu, ppu_bus_t* bus) {
-    g_ppu_bus = bus;
+    /* Copy bus configuration to static storage */
+    if (bus) {
+        g_ppu_bus_static.context = bus->context;
+        g_ppu_bus_static.read_chr = bus->read_chr;
+        g_ppu_bus_static.write_chr = bus->write_chr;
+        g_ppu_bus_static.ppu_write_cpu = bus->ppu_write_cpu;
+    }
+    g_ppu_bus = &g_ppu_bus_static;
+    (void)ppu;  /* unused */
 }
 
 void nes_ppu_nmi_enabled_check(nes_ppu_t* ppu, int* nmi_pending) {
