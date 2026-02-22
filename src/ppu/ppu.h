@@ -183,6 +183,16 @@ void nes_ppu_render_frame(nes_ppu_t* ppu, uint32_t* buffer);
 const uint8_t* nes_ppu_get_frame_buffer(nes_ppu_t* ppu);
 
 /**
+ * Set mirroring mode
+ */
+void nes_ppu_set_mirror_mode(uint8_t mirroring);
+
+/**
+ * OAM DMA transfer
+ */
+void nes_ppu_oam_dma(nes_ppu_t* ppu, const uint8_t* page_data);
+
+/**
  * Get palette color in RGBA format
  */
 uint32_t nes_ppu_get_color(nes_ppu_t* ppu, uint8_t palette_idx);

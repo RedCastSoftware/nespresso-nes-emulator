@@ -87,14 +87,17 @@ void nes_sys_free(nes_system_t* sys) {
     memset(sys, 0, sizeof(nes_system_t));
 }
 
-void nes_sys_reset(nes_system_t* sys) {
-    nes_cpu_reset(sys->cpu);
-    nes_ppu_reset(sys->ppu);
-    nes_apu_reset(sys->apu);
-    nes_input_reset(sys->input);
-    if (sys->mapper) {
-        nes_mapper_reset(sys->mapper);
-    }
+void nes_sys_reset(nes_sys_reset(nes_system_t* sys) {
+    printf("nes_sys_reset called\n");
+    printf("  cpu=%p, ppu=%p, apu=%p, input=%p, mapper=%p\n",
+           (void*)sys->cpu, (void*)sys->ppu, (void*)sys->apu, (void*)sys->input, (void*)sys->mapper);
+
+    if (sys->cpu) { printf("  Calling nes_cpu_reset...\n"); nes_cpu_reset(sys->cpu); }
+    if (sys->ppu) { printf("  Calling nes_ppu_reset...\n"); nes_ppu_reset(sys->ppu); }
+    if (sys->apu) { printf("  Calling nes_apu_reset...\n"); nes_apu_reset(sys->apu); }
+    if (sys->input) { printf("  Calling nes_input_reset...\n"); nes_input_reset(sys->input); }
+    if (sys->mapper) { printf("  Calling nes_mapper_reset...\n"); nes_mapper_reset(sys->mapper); }
+    printf("nes_sys_reset complete\n");
 }
 
 int nes_sys_load_rom(nes_system_t* sys, const char* filename) {

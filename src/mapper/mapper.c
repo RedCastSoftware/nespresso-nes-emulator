@@ -695,15 +695,35 @@ int mapper_7_init(nes_cartridge_t* cart, nes_mapper_t* mapper) {
 /* Mapper creation factory */
 
 int nes_mapper_create(nes_cartridge_t* cart, nes_mapper_t* mapper, nes_ppu_t* ppu) {
+    printf("nes_mapper_create: cart=%p, mapper=%p, ppu=%p\n", (void*)cart, (void*)mapper, (void*)ppu);
+
+    if (!cart || !mapper) {
+        printf("ERROR: cart or mapper is NULL\n");
+        return -1;
+    }
+
     int mapper_num = cart->info.mapper;
+    printf("Mapper number: %d\n", mapper_num);
 
     switch (mapper_num) {
-        case 0: return mapper_0_init(cart, mapper);
-        case 1: return mapper_1_init(cart, mapper, ppu);
-        case 2: return mapper_2_init(cart, mapper);
-        case 3: return mapper_3_init(cart, mapper);
-        case 4: return mapper_4_init(cart, mapper, ppu);
-        case 7: return mapper_7_init(cart, mapper);
+        case 0:
+            printf("Initializing mapper 0...\n");
+            return mapper_0_init(cart, mapper);
+        case 1:
+            printf("Initializing mapper 1...\n");
+            return mapper_1_init(cart, mapper, ppu);
+        case 2:
+            printf("Initializing mapper 2...\n");
+            return mapper_2_init(cart, mapper);
+        case 3:
+            printf("Initializing mapper 3...\n");
+            return mapper_3_init(cart, mapper);
+        case 4:
+            printf("Initializing mapper 4...\n");
+            return mapper_4_init(cart, mapper, ppu);
+        case 7:
+            printf("Initializing mapper 7...\n");
+            return mapper_7_init(cart, mapper);
         default:
             printf("Unsupported mapper: %d\n", mapper_num);
             return -1;
