@@ -402,6 +402,11 @@ void nes_ppu_reset(nes_ppu_t* ppu) {
     ppu->reg.scroll.w = 0;
     ppu->reg.data_buffer = 0;
     ppu->reg.status = PPUSTATUS_VBLANK;
+    ppu->scanline = 261;  /* Start at pre-render scanline */
+    ppu->cycle = 0;
+    ppu->frame = 0;
+    ppu->odd_frame = 0;
+    ppu->sprite_count = 0;
 }
 
 int nes_ppu_step(nes_ppu_t* ppu) {
@@ -627,6 +632,11 @@ void nes_ppu_execute_cycles(nes_ppu_t* ppu, int cycles) {
 /* CPU registers read/write */
 
 void nes_ppu_cpu_write(nes_ppu_t* ppu, uint16_t addr, uint8_t val) {
+    static int debug_mode = 0;  /* Set to 1 for PPU write debugging */
+    if (debug_mode && addr <= 7) {
+        printf("PPU write: $%04X = $%02X (addr&7=$%X)\n", 0x2000 + (addr & 7), val, addr & 7);
+        fflush(stdout);
+    }
     addr &= 0x0007;
 
     switch (addr) {
