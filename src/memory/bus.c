@@ -87,7 +87,7 @@ void nes_sys_free(nes_system_t* sys) {
     memset(sys, 0, sizeof(nes_system_t));
 }
 
-void nes_sys_reset(nes_sys_reset(nes_system_t* sys) {
+void nes_sys_reset(nes_system_t* sys) {
     printf("nes_sys_reset called\n");
     printf("  cpu=%p, ppu=%p, apu=%p, input=%p, mapper=%p\n",
            (void*)sys->cpu, (void*)sys->ppu, (void*)sys->apu, (void*)sys->input, (void*)sys->mapper);
