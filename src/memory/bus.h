@@ -151,6 +151,16 @@ int nes_sys_is_running(const nes_system_t* sys);
  */
 void nes_sys_set_running(nes_system_t* sys, int running);
 
+/**
+ * Save state to file
+ */
+int nes_sys_save_state(nes_system_t* sys, const char* filename);
+
+/**
+ * Load state from file
+ */
+int nes_sys_load_state(nes_system_t* sys, const char* filename);
+
 /* CPU-PPU Cycle Ratio */
 #define NES_CPU_PPU_RATIO 3  /* 3 CPU cycles = 1 PPU cycle */
 

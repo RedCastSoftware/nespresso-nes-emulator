@@ -60,7 +60,7 @@ int nes_sys_init(nes_system_t* sys) {
         .write_chr = (void (*)(void*, uint16_t, uint8_t))nes_sys_ppu_write,
     };
     nes_ppu_set_bus(sys->ppu, &ppu_bus);
-    nes_apu_set_bus(sys->apu, &ppu_bus);
+    /* Note: APU uses system bus for DMA - set separately if needed */
 
     sys->cpu_cycles_per_frame = NES_CPU_CYCLES_PER_FRAME;
     sys->ppu_cycles_per_frame = NES_PPU_CYCLES_PER_FRAME;

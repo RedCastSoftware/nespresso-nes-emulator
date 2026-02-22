@@ -48,6 +48,10 @@ typedef struct nes_platform {
     nes_window_t    window;
     nes_audio_t     audio;
 
+    /* Display settings */
+    int             scale;
+    int             fullscreen;
+
     /* Frame timing */
     uint64_t        frame_time;
     uint64_t        last_time;
