@@ -19,6 +19,8 @@ typedef struct {
     nes_cartridge_t* cart;
 } mapper_0_ctx_t;
 
+static mapper_0_ctx_t g_mapper_0_ctx = {NULL};
+
 static uint8_t mapper_0_cpu_read(void* ctx, uint16_t addr) {
     mapper_0_ctx_t* m = (mapper_0_ctx_t*)ctx;
     uint32_t prg_addr;
@@ -59,15 +61,14 @@ static void mapper_0_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_0_init(nes_cartridge_t* cart, nes_mapper_t* mapper) {
-    static mapper_0_ctx_t ctx;
-    ctx.cart = cart;
+    g_mapper_0_ctx.cart = cart;
 
     mapper->number = 0;
     mapper->cpu_read = mapper_0_cpu_read;
     mapper->cpu_write = mapper_0_cpu_write;
     mapper->ppu_read = mapper_0_ppu_read;
     mapper->ppu_write = mapper_0_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_0_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;
@@ -98,6 +99,8 @@ typedef struct {
     uint8_t  mirroring;          /* Mirroring mode */
     uint8_t  prg_ram_disabled;   /* PRG-RAM disable */
 } mapper_1_ctx_t;
+
+static mapper_1_ctx_t g_mapper_1_ctx;
 
 static inline uint8_t mmc1_get_bank(nes_cartridge_t* cart, uint8_t bank) {
     int num_banks = cart->info.prg_rom_banks;
@@ -266,26 +269,25 @@ static void mapper_1_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_1_init(nes_cartridge_t* cart, nes_mapper_t* mapper, nes_ppu_t* ppu) {
-    static mapper_1_ctx_t ctx;
     g_ppu = ppu;
-    ctx.cart = cart;
-    ctx.shift_reg = 0x10;
-    ctx.shift_count = 0;
-    ctx.control = 0x0C;
-    ctx.chr_bank_0 = 0;
-    ctx.chr_bank_1 = 0;
-    ctx.prg_bank = 0;
-    ctx.prg_mode = 3;
-    ctx.chr_mode = 0;
-    ctx.mirroring = 2;
-    ctx.prg_ram_disabled = 0;
+    g_mapper_1_ctx.cart = cart;
+    g_mapper_1_ctx.shift_reg = 0x10;
+    g_mapper_1_ctx.shift_count = 0;
+    g_mapper_1_ctx.control = 0x0C;
+    g_mapper_1_ctx.chr_bank_0 = 0;
+    g_mapper_1_ctx.chr_bank_1 = 0;
+    g_mapper_1_ctx.prg_bank = 0;
+    g_mapper_1_ctx.prg_mode = 3;
+    g_mapper_1_ctx.chr_mode = 0;
+    g_mapper_1_ctx.mirroring = 2;
+    g_mapper_1_ctx.prg_ram_disabled = 0;
 
     mapper->number = 1;
     mapper->cpu_read = mapper_1_cpu_read;
     mapper->cpu_write = mapper_1_write;
     mapper->ppu_read = mapper_1_ppu_read;
     mapper->ppu_write = mapper_1_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_1_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;
@@ -299,6 +301,8 @@ typedef struct {
     nes_cartridge_t* cart;
     uint8_t  bank_select;
 } mapper_2_ctx_t;
+
+static mapper_2_ctx_t g_mapper_2_ctx = {NULL, 0};
 
 static uint8_t mapper_2_cpu_read(void* ctx, uint16_t addr) {
     mapper_2_ctx_t* m = (mapper_2_ctx_t*)ctx;
@@ -357,16 +361,15 @@ static void mapper_2_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_2_init(nes_cartridge_t* cart, nes_mapper_t* mapper) {
-    static mapper_2_ctx_t ctx;
-    ctx.cart = cart;
-    ctx.bank_select = 0;
+    g_mapper_2_ctx.cart = cart;
+    g_mapper_2_ctx.bank_select = 0;
 
     mapper->number = 2;
     mapper->cpu_read = mapper_2_cpu_read;
     mapper->cpu_write = mapper_2_cpu_write;
     mapper->ppu_read = mapper_2_ppu_read;
     mapper->ppu_write = mapper_2_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_2_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;
@@ -380,6 +383,8 @@ typedef struct {
     nes_cartridge_t* cart;
     uint8_t  chr_bank;
 } mapper_3_ctx_t;
+
+static mapper_3_ctx_t g_mapper_3_ctx = {NULL, 0};
 
 static uint8_t mapper_3_cpu_read(void* ctx, uint16_t addr) {
     mapper_3_ctx_t* m = (mapper_3_ctx_t*)ctx;
@@ -435,16 +440,15 @@ static void mapper_3_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_3_init(nes_cartridge_t* cart, nes_mapper_t* mapper) {
-    static mapper_3_ctx_t ctx;
-    ctx.cart = cart;
-    ctx.chr_bank = 0;
+    g_mapper_3_ctx.cart = cart;
+    g_mapper_3_ctx.chr_bank = 0;
 
     mapper->number = 3;
     mapper->cpu_read = mapper_3_cpu_read;
     mapper->cpu_write = mapper_3_cpu_write;
     mapper->ppu_read = mapper_3_ppu_read;
     mapper->ppu_write = mapper_3_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_3_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;
@@ -465,6 +469,8 @@ typedef struct {
     uint8_t  prg_mode;
     uint8_t  chr_mode;
 } mapper_4_ctx_t;
+
+static mapper_4_ctx_t g_mapper_4_ctx;
 
 static uint8_t mapper_4_cpu_read(void* ctx, uint16_t addr) {
     mapper_4_ctx_t* m = (mapper_4_ctx_t*)ctx;
@@ -600,24 +606,23 @@ static void mapper_4_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_4_init(nes_cartridge_t* cart, nes_mapper_t* mapper, nes_ppu_t* ppu) {
-    static mapper_4_ctx_t ctx;
     g_ppu = ppu;
-    ctx.cart = cart;
-    memset(ctx.registers, 0, sizeof(ctx.registers));
-    ctx.bank_select = 0;
-    ctx.irq_counter = 0;
-    ctx.irq_latch = 0;
-    ctx.irq_enabled = 0;
-    ctx.irq_reload = 0;
-    ctx.prg_mode = 0;
-    ctx.chr_mode = 0;
+    g_mapper_4_ctx.cart = cart;
+    memset(g_mapper_4_ctx.registers, 0, sizeof(g_mapper_4_ctx.registers));
+    g_mapper_4_ctx.bank_select = 0;
+    g_mapper_4_ctx.irq_counter = 0;
+    g_mapper_4_ctx.irq_latch = 0;
+    g_mapper_4_ctx.irq_enabled = 0;
+    g_mapper_4_ctx.irq_reload = 0;
+    g_mapper_4_ctx.prg_mode = 0;
+    g_mapper_4_ctx.chr_mode = 0;
 
     mapper->number = 4;
     mapper->cpu_read = mapper_4_cpu_read;
     mapper->cpu_write = mapper_4_write;
     mapper->ppu_read = mapper_4_ppu_read;
     mapper->ppu_write = mapper_4_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_4_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;
@@ -631,6 +636,8 @@ typedef struct {
     nes_cartridge_t* cart;
     uint8_t  prg_bank;
 } mapper_7_ctx_t;
+
+static mapper_7_ctx_t g_mapper_7_ctx = {NULL, 0};
 
 static uint8_t mapper_7_cpu_read(void* ctx, uint16_t addr) {
     mapper_7_ctx_t* m = (mapper_7_ctx_t*)ctx;
@@ -675,16 +682,15 @@ static void mapper_7_ppu_write(void* ctx, uint16_t addr, uint8_t val) {
 }
 
 int mapper_7_init(nes_cartridge_t* cart, nes_mapper_t* mapper) {
-    static mapper_7_ctx_t ctx;
-    ctx.cart = cart;
-    ctx.prg_bank = 0;
+    g_mapper_7_ctx.cart = cart;
+    g_mapper_7_ctx.prg_bank = 0;
 
     mapper->number = 7;
     mapper->cpu_read = mapper_7_cpu_read;
     mapper->cpu_write = mapper_7_cpu_write;
     mapper->ppu_read = mapper_7_ppu_read;
     mapper->ppu_write = mapper_7_ppu_write;
-    mapper->context = &ctx;
+    mapper->context = &g_mapper_7_ctx;
     mapper->reset = NULL;
     mapper->scanline = NULL;
     mapper->clock_irq = NULL;

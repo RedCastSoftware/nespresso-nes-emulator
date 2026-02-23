@@ -58,6 +58,7 @@ int nes_sys_init(nes_system_t* sys) {
         .context = sys,
         .read_chr = (uint8_t (*)(void*, uint16_t))nes_sys_ppu_read,
         .write_chr = (void (*)(void*, uint16_t, uint8_t))nes_sys_ppu_write,
+        .ppu_write_cpu = NULL,  /* Not currently used in callbacks */
     };
     nes_ppu_set_bus(sys->ppu, &ppu_bus);
     /* Note: APU uses system bus for DMA - set separately if needed */

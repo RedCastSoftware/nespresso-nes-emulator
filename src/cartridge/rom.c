@@ -157,7 +157,9 @@ nes_rom_result_t nes_cartridge_load_memory(nes_cartridge_t* cart, const uint8_t*
     }
 
     size_t offset = NES_ROM_HEADER_SIZE;
-    size_t rom_size = offset + cart->prg_rom_size + cart->chr_rom_size;
+    /* Calculate expected file size - CHR-ROM only if banks > 0 */
+    size_t expected_chr_size = cart->info.chr_rom_banks * NES_CHR_ROM_SIZE;
+    size_t rom_size = offset + cart->prg_rom_size + expected_chr_size;
 
     /* Check if trainer present */
     if (cart->info.has_trainer) {

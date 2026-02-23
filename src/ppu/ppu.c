@@ -31,7 +31,7 @@ static const uint8_t g_nes_palette[64][3] = {
 
 /* Static PPU bus - static storage that persists beyond function calls */
 static ppu_bus_t g_ppu_bus_static = {NULL, NULL, NULL, NULL};
-static ppu_bus_t* g_ppu_bus = NULL;
+static ppu_bus_t* g_ppu_bus = &g_ppu_bus_static;
 
 /* Frame buffer for rendering */
 static uint8_t g_frame_buffer[PPU_WIDTH * PPU_HEIGHT];
