@@ -93,7 +93,7 @@ static uint8_t read_palette(uint16_t addr) {
     return g_nes_palette[addr % 0x40][0];
 }
 
-static uint8_t ppu_read_vram(uint16_t addr) {
+static uint8_t ppu_read_vram(nes_ppu_t* ppu, uint16_t addr) {
     addr &= 0x3FFF;
 
     if (addr < 0x2000) {
@@ -103,9 +103,9 @@ static uint8_t ppu_read_vram(uint16_t addr) {
         }
         return 0;
     } else if (addr < 0x3F00) {
-        /* Nametables and attribute tables */
+        /* Nametables and attribute tables - read from ppu->vram */
         uint16_t mirrored = read_name_table_addr(addr);
-        return g_frame_buffer[(mirrored - 0x2000) & 0xFFF];
+        return ppu->vram[(mirrored - 0x2000) & 0xFFF];
     } else {
         /* Palettes */
         return read_palette(addr);
@@ -218,12 +218,12 @@ static void load_background_shifters(nes_ppu_t* ppu) {
 /* Fetch background tile data */
 static void fetch_tile_data(nes_ppu_t* ppu, uint16_t *addr_lo, uint16_t *addr_hi) {
     uint16_t nametable_addr = 0x2000 | (ppu->reg.scroll.v & 0x0FFF);
-    uint8_t tile_index = ppu_read_vram(nametable_addr);
+    uint8_t tile_index = ppu_read_vram(ppu, nametable_addr);
 
     uint16_t attr_addr = 0x23C0 | (ppu->reg.scroll.v & 0x0C00) |
                         ((ppu->reg.scroll.v >> 4) & 0x38) |
                         ((ppu->reg.scroll.v >> 2) & 0x07);
-    uint8_t attr = ppu_read_vram(attr_addr);
+    uint8_t attr = ppu_read_vram(ppu, attr_addr);
 
     if (ppu->reg.scroll.v & 0x40) attr >>= 2;
     if (ppu->reg.scroll.v & 0x02) attr >>= 2;
@@ -307,8 +307,8 @@ static uint8_t get_sprite_pixel(nes_ppu_t* ppu, int x) {
                 }
 
                 uint16_t addr = pattern_table + ((uint16_t)tile << 4) + line;
-                uint8_t lo = ppu_read_vram(addr);
-                uint8_t hi = ppu_read_vram(addr + 8);
+                uint8_t lo = ppu_read_vram(ppu, addr);
+                uint8_t hi = ppu_read_vram(ppu, addr + 8);
 
                 int shift = 7 - column;
                 uint8_t pixel = ((lo >> shift) & 0x01) | (((hi >> shift) & 0x01) << 1);
@@ -433,8 +433,8 @@ int nes_ppu_step(nes_ppu_t* ppu) {
                 /* Fetch tile data */
                 uint16_t addr_lo, addr_hi;
                 fetch_tile_data(ppu, &addr_lo, &addr_hi);
-                ppu->background_fetch_tile = ppu_read_vram(addr_lo) |
-                                            (ppu_read_vram(addr_hi) << 8);
+                ppu->background_fetch_tile = ppu_read_vram(ppu, addr_lo) |
+                                            (ppu_read_vram(ppu, addr_hi) << 8);
             }
         }
 
@@ -465,7 +465,7 @@ int nes_ppu_step(nes_ppu_t* ppu) {
                             uint16_t attr_addr = 0x23C0 | (ppu->reg.scroll.v & 0x0C00) |
                                                ((ppu->reg.scroll.v >> 4) & 0x38) |
                                                ((ppu->reg.scroll.v >> 2) & 0x07);
-                            uint8_t attr = ppu_read_vram(attr_addr);
+                            uint8_t attr = ppu_read_vram(ppu, attr_addr);
 
                             if ((x / 2) & 1) attr >>= 2;
                             if ((ppu->scanline / 2) & 1) attr >>= 2;
@@ -493,8 +493,8 @@ int nes_ppu_step(nes_ppu_t* ppu) {
                             if (attr & SP_ATTR_FLIP_H) column = 7 - column;
 
                             uint16_t addr = pattern_table + ((uint16_t)sprite->tile << 4) + line;
-                            uint8_t lo = ppu_read_vram(addr);
-                            uint8_t hi = ppu_read_vram(addr + 8);
+                            uint8_t lo = ppu_read_vram(ppu, addr);
+                            uint8_t hi = ppu_read_vram(ppu, addr + 8);
                             sprite_pixel = ((lo >> column) & 1) | (((hi >> column) & 1) << 1);
 
                             if (i == 0 && sprite_pixel && pixel) {
@@ -579,8 +579,8 @@ int nes_ppu_step(nes_ppu_t* ppu) {
             if (cycle_mod == 0) {
                 uint16_t addr_lo, addr_hi;
                 fetch_tile_data(ppu, &addr_lo, &addr_hi);
-                ppu->background_fetch_tile = ppu_read_vram(addr_lo) |
-                                            (ppu_read_vram(addr_hi) << 8);
+                ppu->background_fetch_tile = ppu_read_vram(ppu, addr_lo) |
+                                            (ppu_read_vram(ppu, addr_hi) << 8);
             }
         }
 
@@ -700,7 +700,7 @@ uint8_t nes_ppu_cpu_read(nes_ppu_t* ppu, uint16_t addr) {
 
         case 7:  /* PPUDATA */
             result = ppu->reg.data_buffer;
-            ppu->reg.data_buffer = ppu_read_vram(ppu->reg.scroll.v);
+            ppu->reg.data_buffer = ppu_read_vram(ppu, ppu->reg.scroll.v);
 
             /* Palette reads are not buffered */
             if ((ppu->reg.scroll.v & 0x3FFF) >= 0x3F00) {
